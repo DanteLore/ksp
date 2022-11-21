@@ -1,7 +1,7 @@
 import re
 import json
 
-INPUT_FILENAME = "data/quicksave #119.sfs"
+INPUT_FILENAME = "data/quicksave #124.sfs"
 OUTPUT_JSON_FILENAME = "data/new.json"
 OUTPUT_SFS_FILENAME = "data/new.sfs"
 PROPERTY = r"\s*\w+\s=\s*\w*\s*"
@@ -159,18 +159,40 @@ def docking_node_for(docking_port):
         return None
 
 
+def cheat_fuel(vessel):
+    print(f"Cheating fuel to max in vessel {vessel['name']}")
+    parts = vessel['PART']
+    cheat_resources = ['LiquidFuel', 'Oxidizer', 'MonoPropellant', 'ElectricCharge']
+
+    for part in parts:
+        resource_list = part.get('RESOURCE')
+        if not resource_list:
+            resource_list = []  # Deal with parts with no resources
+        if not isinstance(resource_list, list):
+            resource_list = [resource_list]  # Deal with the single item/list duality!
+
+        resources = [r for r in resource_list if r['name'] in cheat_resources]
+
+        for r in resources:
+            current_level = r['amount']
+            max_level = r['maxAmount']
+            print(f"  filling {part['name']} with {r['name']} from {current_level} to {max_level}")
+            r['amount'] = max_level
+
+
 def main():
     save = parse_save_file(INPUT_FILENAME)
 
     vessels = [v for v in save['GAME']['FLIGHTSTATE']['VESSEL'] if v['type'] in PLAYER_VESSELS]
-    # names = [f"{v['name']} : {v['type']}" for v in vessels]
-    # print('\n'.join(names))
+    names = [f"{v['name']} : {v['type']}" for v in vessels]
+    print('\n'.join(names))
 
     for v in vessels:
         fix_docking_ports(v)
 
-    with open(OUTPUT_JSON_FILENAME, mode='w') as f:
-        f.write(json.dumps(save, indent=4))
+    my_ship = [v for v in vessels if v['name'] == 'Go Everywhere 1.0'][0]
+
+    cheat_fuel(my_ship)
 
     save_to_sfs_file(save, OUTPUT_SFS_FILENAME)
 
