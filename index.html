@@ -3,24 +3,26 @@
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
     <script lang="JavaScript">
-    function submitToAPI(e) {
+        function displayResults(result) {
+            html = '<a href="' + result.download_link + '">Download Repaired File</a><br/>';
+            $("#results").append(html)
+        }
+
+        function submitToAPI(e) {
            e.preventDefault();
            var URL = "https://rb8fe5adqd.execute-api.eu-west-1.amazonaws.com/prod";
 
-           var name = $("#name-input").val();
-           var data = {
-              name : name
-            };
-
            $("#submit-button").prop('disabled', true);
 
-           $.post(URL, {deviceId: 1})
-               .done( function(msg) {
-                   alert("Successful");
-                   document.getElementById("contact-form").reset();
-                   } )
+           var data = { stuff: "here" }
+
+           $.post(URL, data)
+               .done( function(result) {
+                   $("#submit-button").prop('disabled', false);
+                   displayResults(result)
+               })
                .fail( function(xhr, textStatus, errorThrown) {
-                   alert(xhr.responseText);
+                   alert(xhr.responseText + ' ' + textStatus);
                });
          }
     </script>
@@ -29,11 +31,10 @@
 <body>
 
 <form id="contact-form" method="post">
-      <h4>Name:</h4>
-      <input type="text" style="height:35px;" id="name-input" placeholder="Enter name here…" class="form-control" style="width:100%;" /><br/>
-
-      <button type="button" onClick="submitToAPI(event)" class="btn btn-lg" id="submit-button" style="margin-top:20px;">Submit</button>
+      <button type="button" onClick="submitToAPI(event)" class="btn btn-lg" id="submit-button">Fix Dodgy Docking Ports</button>
 </form>
+
+<span id="results"></span>
 
 </body>
 </html>
