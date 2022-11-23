@@ -1,13 +1,11 @@
 import re
-import json
 
-INPUT_FILENAME = "data/quicksave #124.sfs"
-OUTPUT_JSON_FILENAME = "data/new.json"
-OUTPUT_SFS_FILENAME = "data/new.sfs"
+INPUT_FILENAME = "data/example_input.sfs"
 PROPERTY = r"\s*\w+\s=\s*\w*\s*"
 OBJECT = r"\s*[A-Za-z0-9]+\s*"
 CAREER_LOG = "CAREER_LOG"
 PLAYER_VESSELS = ['Probe', 'Ship', 'Lander', 'Relay', 'Station', 'Plane', 'Base', 'Debris']
+CHEAT_RESOURCES = ['LiquidFuel', 'Oxidizer', 'MonoPropellant', 'ElectricCharge']
 
 
 def do_parse_save_file(file, current, depth=0):
@@ -55,14 +53,14 @@ def save_sfs_object(obj, file, depth=0):
         if isinstance(obj[key], dict):
             file.write(f"{indent}{key}\n")
             file.write(f"{indent}{{\n")
-            save_sfs_object(obj[key], file, depth+1)
+            save_sfs_object(obj[key], file, depth + 1)
             file.write(f"{indent}}}\n")
         elif isinstance(obj[key], list):
             for item in obj[key]:
                 if isinstance(item, dict):
                     file.write(f"{indent}{key}\n")
                     file.write(f"{indent}{{\n")
-                    save_sfs_object(item, file, depth+1)
+                    save_sfs_object(item, file, depth + 1)
                     file.write(f"{indent}}}\n")
                 else:
                     file.write(f"{indent}{key} = {str(item)}\n")
@@ -124,15 +122,18 @@ def fix_docking_ports(vessel):
             if this_docking_node['dockUId'] != '0':
                 print(f"    dockUId set for undocked port ({this_docking_node['dockUId']})")
                 if not other_port:
-                    print(f"    dockUid {this_docking_node['dockUId']} is not a part on this vessel - probably an undocked vessel")
+                    print(
+                        f"    dockUid {this_docking_node['dockUId']} is not a part on this vessel - probably an undocked vessel")
                     print(f"    setting dockUid to zero, just for neatness")
                     this_docking_node['dockUId'] = 0
                 else:
                     print(f"    dockUid {this_docking_node['dockUId']} is a part in this vessel!  Suss!")
                     if other_docking_node['dockUId'] == this_docking_port["uid"]:
                         if 'Docked' in other_docking_node['state']:
-                            print(f"    Other docking node thinks it's docked to this part with state '{other_docking_node['state']}', so we're docked without knowing!")
-                            new_state = "Docked (dockee)" if "docker" in other_docking_node['state'] else "Docked (docker)"
+                            print(
+                                f"    Other docking node thinks it's docked to this part with state '{other_docking_node['state']}', so we're docked without knowing!")
+                            new_state = "Docked (dockee)" if "docker" in other_docking_node[
+                                'state'] else "Docked (docker)"
                             print(f"    Updating our state to {new_state}")
                             this_docking_node['state'] = new_state
                         else:
@@ -144,7 +145,8 @@ def fix_docking_ports(vessel):
                 print(f"    Docking state '{this_docking_node['state']}' is dodgy.")
                 if other_docking_node:
                     new_state = "Docked (dockee)" if "docker" in other_docking_node['state'] else "Docked (docker)"
-                    print(f"    Changing state to {new_state} to match other port's state of {other_docking_node['state']}")
+                    print(
+                        f"    Changing state to {new_state} to match other port's state of {other_docking_node['state']}")
                     this_docking_node['state'] = new_state
                 else:
                     print(f"    No docked port found on this vessel, so changing state to 'Ready'")
@@ -162,7 +164,6 @@ def docking_node_for(docking_port):
 def cheat_fuel(vessel):
     print(f"Cheating fuel to max in vessel {vessel['name']}")
     parts = vessel['PART']
-    cheat_resources = ['LiquidFuel', 'Oxidizer', 'MonoPropellant', 'ElectricCharge']
 
     for part in parts:
         resource_list = part.get('RESOURCE')
@@ -171,7 +172,7 @@ def cheat_fuel(vessel):
         if not isinstance(resource_list, list):
             resource_list = [resource_list]  # Deal with the single item/list duality!
 
-        resources = [r for r in resource_list if r['name'] in cheat_resources]
+        resources = [r for r in resource_list if r['name'] in CHEAT_RESOURCES]
 
         for r in resources:
             current_level = r['amount']
@@ -180,25 +181,28 @@ def cheat_fuel(vessel):
             r['amount'] = max_level
 
 
-def main():
-    save = parse_save_file(INPUT_FILENAME)
-
-    vessels = [v for v in save['GAME']['FLIGHTSTATE']['VESSEL'] if v['type'] in PLAYER_VESSELS]
-    names = [f"{v['name']} : {v['type']}" for v in vessels]
-    print('\n'.join(names))
+def fix_ports(filename):
+    save_file = parse_save_file(filename)
+    vessels = [v for v in save_file['GAME']['FLIGHTSTATE']['VESSEL'] if v['type'] in PLAYER_VESSELS]
 
     for v in vessels:
         fix_docking_ports(v)
 
+    save_filename = INPUT_FILENAME.replace('.sfs', ' fixed.sfs')
+    save_to_sfs_file(save_file, save_filename)
+
+
+def fill_up_fuel(vessel_name):
+    save_file = parse_save_file(INPUT_FILENAME)
+
+    vessels = [v for v in save_file['GAME']['FLIGHTSTATE']['VESSEL'] if v['type'] in PLAYER_VESSELS]
+    names = [f"{v['name']} : {v['type']}" for v in vessels]
+
     my_ship = [v for v in vessels if v['name'] == 'Go Everywhere 1.0'][0]
-
     cheat_fuel(my_ship)
-
-    save_to_sfs_file(save, OUTPUT_SFS_FILENAME)
-
-    print(f"Done!")
 
 
 if __name__ == "__main__":
-    main()
+    fix_ports(INPUT_FILENAME)
 
+    print(f"Done!")
