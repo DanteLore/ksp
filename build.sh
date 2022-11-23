@@ -16,3 +16,5 @@ rm -rf build
   terraform apply -auto-approve
   rm -rf lambda.zip
 )
+
+aws --profile dantelore s3 cp data/example_input.sfs s3://dantelore.ksp/input/example_input.sfs

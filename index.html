@@ -1,0 +1,39 @@
+<html>
+
+<head>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <script lang="JavaScript">
+    function submitToAPI(e) {
+           e.preventDefault();
+           var URL = "https://rb8fe5adqd.execute-api.eu-west-1.amazonaws.com/prod";
+
+           var name = $("#name-input").val();
+           var data = {
+              name : name
+            };
+
+           $("#submit-button").prop('disabled', true);
+
+           $.post(URL, {deviceId: 1})
+               .done( function(msg) {
+                   alert("Successful");
+                   document.getElementById("contact-form").reset();
+                   } )
+               .fail( function(xhr, textStatus, errorThrown) {
+                   alert(xhr.responseText);
+               });
+         }
+    </script>
+</head>
+
+<body>
+
+<form id="contact-form" method="post">
+      <h4>Name:</h4>
+      <input type="text" style="height:35px;" id="name-input" placeholder="Enter name here…" class="form-control" style="width:100%;" /><br/>
+
+      <button type="button" onClick="submitToAPI(event)" class="btn btn-lg" id="submit-button" style="margin-top:20px;">Submit</button>
+</form>
+
+</body>
+</html>

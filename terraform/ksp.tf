@@ -127,6 +127,9 @@ resource "aws_iam_instance_profile" "server" {
   role = aws_iam_role.lambda_exec_role.name
 }
 
+# REST API
+
+
 resource "aws_api_gateway_rest_api" "ksp_rest_api" {
   name        = "KSP REST API"
   description = "Tye REST API for the KSP save file fixer"
@@ -141,7 +144,7 @@ resource "aws_api_gateway_resource" "proxy" {
 resource "aws_api_gateway_method" "proxy" {
   rest_api_id   = aws_api_gateway_rest_api.ksp_rest_api.id
   resource_id   = aws_api_gateway_resource.proxy.id
-  http_method   = "ANY"
+  http_method   = "POST"
   authorization = "NONE"
 }
 
@@ -158,7 +161,7 @@ resource "aws_api_gateway_integration" "lambda" {
 resource "aws_api_gateway_method" "proxy_root" {
   rest_api_id   = aws_api_gateway_rest_api.ksp_rest_api.id
   resource_id   = aws_api_gateway_rest_api.ksp_rest_api.root_resource_id
-  http_method   = "ANY"
+  http_method   = "POST"
   authorization = "NONE"
 }
 
@@ -193,3 +196,11 @@ resource "aws_lambda_permission" "apigw" {
 output "base_url" {
   value = aws_api_gateway_deployment.ksp_api_deployment.invoke_url
 }
+
+module "cors" {
+  source = "squidfunk/api-gateway-enable-cors/aws"
+  version = "0.3.3"
+  api_id            = aws_api_gateway_rest_api.ksp_rest_api.id
+  api_resource_id   = aws_api_gateway_resource.proxy.id
+}
+

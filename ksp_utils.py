@@ -180,15 +180,14 @@ def cheat_fuel(vessel):
             r['amount'] = max_level
 
 
-def fix_ports(filename):
-    save_file = parse_save_file(filename)
-    vessels = [v for v in save_file['GAME']['FLIGHTSTATE']['VESSEL'] if v['type'] in PLAYER_VESSELS]
+def fix_ports(input_file, output_file):
+    game_data = parse_save_file(input_file)
+    vessels = [v for v in game_data['GAME']['FLIGHTSTATE']['VESSEL'] if v['type'] in PLAYER_VESSELS]
 
     for v in vessels:
         fix_docking_ports(v)
 
-    save_filename = filename.replace('.sfs', ' fixed.sfs')
-    save_to_sfs_file(save_file, save_filename)
+    save_to_sfs_file(game_data, output_file)
 
 
 def fill_up_fuel(filename, vessel_name):
