@@ -1,109 +1,188 @@
-<html>
+<html lang="en-gb">
 
-<head>
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
+    <head title="Unofficial KSP Docking Port Fixer">
+        <link rel="stylesheet" href="content/bootstrap.min.css">
 
-    <script lang="JavaScript">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
 
-        $(document).ready(function() {
-            $('#theFile').on("change", function() {
-                if ($('#theFile').val() && $('#theFile') != '') {
-                    $('#submitButton').removeAttr("disabled")
-                } else {
-                    $('#submitButton').attr("disabled", "disabled");
+        <script lang="JavaScript">
+
+            $(document).ready(function() {
+                $('#theFile').on("change", function() {
+                    if ($('#theFile').val() && $('#theFile') != '') {
+                        $('#submitButton').removeAttr("disabled")
+                    } else {
+                        $('#submitButton').attr("disabled", "disabled");
+                    }
+                });
+            });
+
+            const lambda_url = "https://rb8fe5adqd.execute-api.eu-west-1.amazonaws.com/prod";
+            var key = ''
+
+            function handleError(xhr, textStatus, errorThrown) {
+                alert(xhr.responseText + ' ' + textStatus);
+            }
+
+            function displayResults(result) {
+                if(result.status === 'Success' && result.download_link) {
+
+                    html = '<a class="btn btn-success" role="button" style="width: 100%" href="' + result.download_link + '">Download repaired save file!</a>'
+                    $("#results").append(html)
                 }
-            });
-        });
+                else if(result.status === 'Failed' && result.error_message) {
+                    html = "<p>Failed with the following error message: <em>" + result.error_message + "</em></p>";
+                    $('#results').append(html)
+                }
+                else {
+                    html = "<p>It didn't work and I don't know why!  No error code returned.  Sorry!</p>";
+                    $("#results").append(html)
+                }
 
-        const lambda_url = "https://rb8fe5adqd.execute-api.eu-west-1.amazonaws.com/prod";
-        var key = ''
-
-        function handleError(xhr, textStatus, errorThrown) {
-            alert(xhr.responseText + ' ' + textStatus);
-        }
-
-        function displayResults(result) {
-            if(result.status == 'Success' && result.download_link) {
-                html = '<a href="' + result.download_link + '">Download Repaired File</a><br/>';
-                $("#results").append(html)
-            }
-            else if(result.status == 'Failed' && result.error_message) {
-                html = "<p>Failed with the following error message: <em>" + result.error_message + "</em></p>";
-                $("#results").append(html)
-            }
-            else {
-                html = "<p>It didn't work and I don't know why!  No error code returned.  Sorry!</p>";
-                $("#results").append(html)
+                $('#progressBar').attr('aria-valuenow', 100).css('width', 100+'%');
+                $("#theFile").val('');
+                $('#theFile').removeAttr("disabled");
+                $('#SubmitButton').attr("disabled", "disabled");
             }
 
-            $("#theFile").val('');
-            $('#theFile').removeAttr("disabled");
-            $('#SubmitButton').attr("disabled", "disabled");
-        }
+            function doConversion(result) {
+                html = '<p>Beginning conversion on input ref:' + key + '</p>';
+                $("#results").append(html)
+                $('#progressBar').attr('aria-valuenow', 40).css('width', 40+'%');
 
-        function doConversion(result) {
-            html = '<p>Beginning conversion on input ref:' + key + '</p>';
-            $("#results").append(html)
+                let postData = {s3_key: key}
 
-            let postData = {s3_key: key}
+                $.post(url=lambda_url, data=postData)
+                   .done(displayResults)
+                   .fail(handleError);
+            }
 
-            $.post(url=lambda_url, data=postData)
-               .done(displayResults)
-               .fail(handleError);
-        }
+            function doUpload(result) {
+                let url = result.upload_link;
+                key = result.s3_key;
 
-        function doUpload(result) {
-            let url = result.upload_link;
-            key = result.s3_key;
+                html = '<p>Uploading file...</p>';
+                $("#results").append(html)
 
-            html = '<p>Uploading file...</p>';
-            $("#results").append(html)
+                var theFile = $('#theFile').get()[0].files[0];
 
-            var theFile = $('#theFile').get()[0].files[0];
+                $.ajax({
+                    url: url,
+                    type: 'PUT',
+                    data: theFile,
+                    contentType: 'binary/octet-stream',
+                    processData: false,
+                    success: doConversion,
+                    error: handleError
+                });
+            }
 
-            $.ajax({
-                url: url,
-                type: 'PUT',
-                data: theFile,
-                contentType: 'binary/octet-stream',
-                processData: false,
-                success: doConversion,
-                error: handleError
-            });
-        }
+            function submitToAPI(e) {
+                html = '<p>Getting upload link...</p>';
+                $("#results").append(html)
 
-        function submitToAPI(e) {
-            html = '<p>Getting upload link...</p>';
-            $("#results").append(html)
+                e.preventDefault();
 
-            e.preventDefault();
+                $('#submitButton').attr("disabled", "disabled");
+                $('#theFile').attr("disabled", "disabled");
+                $('#results').empty()
+                $('#progressBar').attr('aria-valuenow', 10).css('width', 10+'%');
 
-            $('#submitButton').attr("disabled", "disabled");
-            $('#theFile').attr("disabled", "disabled");
-            $('#results').empty()
+                // https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html
+                // Call a function to get a pre-signed PUT URL
+                // Post the file to that URL
+                // Then call the lambda below to process the file and get the temp URL for the output file
+                $.post(url=lambda_url)
+                   .done(doUpload)
+                   .fail(handleError);
+             }
+        </script>
+    </head>
 
-            // https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html
-            // Call a function to get a pre-signed PUT URL
-            // Post the file to that URL
-            // Then call the lambda below to process the file and get the temp URL for the output file
-            $.post(url=lambda_url)
-               .done(doUpload)
-               .fail(handleError);
-         }
-    </script>
-</head>
+    <body>
 
-<body>
+        <div class="container" style="margin-top: 5em">
+          <div class="page-header" id="banner">
+            <div class="row">
+              <div class="col-lg-8 col-md-7 col-sm-6">
+                <h1>Unofficial KSP Docking Port Fixer</h1>
+                <p class="lead">A save file fixing utility for broken docking ports in Kerbal Space Program by DanteLore</p>
+              </div>
+            </div>
+          </div>
 
-<h1>Unofficial KSP Docking Port Fixer</h1>
+        <div class="container">
 
-<form id="ksp-fix-form" method="post">
-    <p>Select your <a href="https://wiki.kerbalspaceprogram.com/wiki/Root_directory" target="_new">KSP save file:</a></p>
-    <input type="file" id="theFile">
-    <button type="button" onClick="submitToAPI(event)" id="submitButton" disabled="true">Fix Dodgy Docking Ports</button>
-</form>
+            <div class="row">
+                <div class="col-lg-7" style="margin-top: 2em; margin-left: auto; margin-right: auto">
 
-<span id="results"></span>
+                    <div class="card border-info mb-3">
+                      <div class="card-body">
+                        <h4 class="card-title">Free your ports!</h4>
+                        <p>
+                            Kerbal Space Program is one of the finest games ever to be written.  But there's nothing worse after a long
+                            transfer to a distant planet than right-clicking a docking port and finding the "Undock" option has disappeared!
+                        </p>
 
-</body>
+                        <p>
+                            That's where this utility comes in handy.  Follow these simple steps and you'll be back up and running in no time!
+                        </p>
+
+                        <ul>
+                            <li>Save your game</li>
+                            <li>Select your save file in the form below</li>
+                            <li>Click the button and wait a few seconds while the converter does it's magic</li>
+                            <li>Download a fixed version of your file to your save game directory</li>
+                            <li>Load the new save and... Boom!  You're back in business</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div class="card border-primary mb-3" >
+                        <div class="card-body">
+                            <h4 class="card-title">Fix Docking Ports</h4>
+                            <form id="ksp-fix-form" method="post">
+                                <fieldset>
+                                    <div class="form-group row" style="margin: 2em;">
+                                        <label for="theFile" class="form-label mt-4">KSP save file</label>
+                                        <input type="file" id="theFile" class="form-control">
+                                        <small id="emailHelp" class="form-text text-muted">Here's how to <a href="https://wiki.kerbalspaceprogram.com/wiki/Root_directory" target="_new">find it</a></small>
+                                    </div>
+                                    <div class="form-group row" style="margin: 2em;">
+                                        <button type="button" onClick="submitToAPI(event)" id="submitButton" disabled="true" class="btn btn-secondary">Fix Dodgy Docking Ports</button>
+                                    </div>
+                                </fieldset>
+                            </form>
+
+                            <div class="progress">
+                                <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100" style="width: 0%;"></div>
+                            </div>
+                            <div id="results" style="max-width: 90%; min-width: 90%; margin-left: auto; margin-right: auto; margin-top: 3em;">
+
+                            </div>
+                        </div>
+                      </div>
+                </div>
+            </div>
+
+            <p class="text-muted" style="margin-top: 5em;">
+                If you're interested in the code for this project, you can find it
+                <a href="https://github.com/DanteLore/ksp" target="_new">on github</a>.
+                If you want to get in touch I am <a href="https://www.reddit.com/user/DanteLore1" target="_new">u/DanteLore1</a> on Reddit
+                or
+                <a href="https://twitter.com/DanteLore" target="_new">DanteLore</a> on Twitter.  You're already on
+                <a href="https://dantelore.com">my website</a>.
+            </p>
+
+            <p id="smallprint"class="text-muted">
+                <strong>Small print:</strong> This utility is provided free of charge and without warranty. The author assumes no
+                liability for damages of any kind. You use the tool at your own risk.  That said, a corrupt KSP save file is very unlikely to cause
+                anyone any harm.  <strong>Always make a backup</strong>.  Please do not upload any personal data or sensitive info.
+                If your latest rocket's name happens to be your bank account number, there is very little that can be done to secure
+                that data.  I will collect no data about you, but may keep a backup of your (anonymised) save file for dev and debugging purposes.
+                Use of the tool constitutes acceptance of these terms.
+            </p>
+
+        </body>
+    </div>
 </html>

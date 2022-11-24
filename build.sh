@@ -18,3 +18,6 @@ rm -rf build
 )
 
 aws --profile dantelore s3 cp data/example_input.sfs s3://dantelore.ksp/input/example_input.sfs
+
+aws --profile dantelore s3 cp index.html s3://dantelore.com/ksp/index.html
+aws --profile dantelore s3 cp --recursive content s3://dantelore.com/ksp/content
