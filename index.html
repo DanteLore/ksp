@@ -3,35 +3,85 @@
 <head>
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.1/jquery.min.js"></script>
     <script lang="JavaScript">
+
+        const lambda_url = "https://rb8fe5adqd.execute-api.eu-west-1.amazonaws.com/prod";
+        var key = ''
+
+        function handleError(xhr, textStatus, errorThrown) {
+            alert(xhr.responseText + ' ' + textStatus);
+        }
+
         function displayResults(result) {
-            html = '<a href="' + result.download_link + '">Download Repaired File</a><br/>';
+            if(result.download_link) {
+                html = '<a href="' + result.download_link + '">Download Repaired File</a><br/>';
+                $("#results").append(html)
+            }
+            else {
+                html = "<p>Didn't work...</p>";
+                $("#results").append(html)
+            }
+
+            $("#submit-button").prop('disabled', false);
+        }
+
+        function doConversion(result) {
+            html = '<p>Beginning conversion on input ref:' + key + '</p>';
             $("#results").append(html)
+
+            let postData = {s3_key: key}
+
+            $.post(url=lambda_url, data=postData)
+               .done(displayResults)
+               .fail(handleError);
+        }
+
+        function doUpload(result) {
+            let url = result.upload_link;
+            key = result.s3_key;
+
+            html = '<p>Uploading file...</p>';
+            $("#results").append(html)
+
+            var theFile = $('#theFile').get()[0].files[0];
+
+            $.ajax({
+                url: url,
+                type: 'PUT',
+                data: theFile,
+                contentType: 'binary/octet-stream',
+                processData: false,
+                success: doConversion,
+                error: handleError
+            });
         }
 
         function submitToAPI(e) {
-           e.preventDefault();
-           var URL = "https://rb8fe5adqd.execute-api.eu-west-1.amazonaws.com/prod";
+            html = '<p>Getting upload link...</p>';
+            $("#results").append(html)
 
-           $("#submit-button").prop('disabled', true);
+            e.preventDefault();
 
-           var data = { stuff: "here" }
+            $("#submit-button").prop('disabled', true);
 
-           $.post(URL, data)
-               .done( function(result) {
-                   $("#submit-button").prop('disabled', false);
-                   displayResults(result)
-               })
-               .fail( function(xhr, textStatus, errorThrown) {
-                   alert(xhr.responseText + ' ' + textStatus);
-               });
+            // https://docs.aws.amazon.com/AmazonS3/latest/userguide/PresignedUrlUploadObject.html
+            // Call a function to get a pre-signed PUT URL
+            // Post the file to that URL
+            // Then call the lambda below to process the file and get the temp URL for the output file
+            $.post(url=lambda_url)
+               .done(doUpload)
+               .fail(handleError);
          }
     </script>
 </head>
 
 <body>
 
-<form id="contact-form" method="post">
-      <button type="button" onClick="submitToAPI(event)" class="btn btn-lg" id="submit-button">Fix Dodgy Docking Ports</button>
+<h1>Unofficial KSP Docking Port Fixer</h1>
+
+<form id="ksp-fix-form" method="post">
+    <span>Select your KSP save file:</span>
+    <input type="file" id="theFile" name="filename">
+    <button type="button" onClick="submitToAPI(event)" id="submit-button">Fix Dodgy Docking Ports</button>
 </form>
 
 <span id="results"></span>

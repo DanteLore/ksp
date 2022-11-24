@@ -36,6 +36,23 @@ resource "aws_s3_bucket_public_access_block" "ksp_bucket" {
   restrict_public_buckets = true
 }
 
+resource "aws_s3_bucket_cors_configuration" "example" {
+  bucket = aws_s3_bucket.ksp_bucket.id
+
+  cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["PUT"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
+
+  cors_rule {
+    allowed_methods = ["GET"]
+    allowed_origins = ["*"]
+  }
+}
+
 resource "aws_cloudwatch_log_group" "log_group" {
   name              = "/aws/lambda/${var.function_name}"
   retention_in_days = 3
@@ -202,5 +219,8 @@ module "cors" {
   version = "0.3.3"
   api_id            = aws_api_gateway_rest_api.ksp_rest_api.id
   api_resource_id   = aws_api_gateway_resource.proxy.id
+  allow_headers = ["*"]
+  allow_methods = ["POST", "OPTIONS"]
+  allow_origin = "*"
 }
 

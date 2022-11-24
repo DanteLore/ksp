@@ -28,3 +28,16 @@ def get_download_link(bucket, key):
         ExpiresIn=3600)
 
     return url
+
+
+def get_upload_link(bucket, key):
+    url = boto3.client('s3').generate_presigned_url(
+        ClientMethod='put_object',
+        Params={
+            'Bucket': bucket,
+            'Key': key,
+            'ContentType': 'binary/octet-stream'
+        },
+        ExpiresIn=60)
+
+    return url
