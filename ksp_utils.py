@@ -92,6 +92,7 @@ def fix_docking_ports(vessel):
     if len(docking_ports) == 0:
         print("Vessel has no docking ports - all fine!")
         return
+
     print("Docking Ports:")
     for this_port_uid, this_docking_port in docking_ports.items():
         # The docking node module contains information on the part to which this part is docked.
