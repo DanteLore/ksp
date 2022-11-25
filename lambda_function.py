@@ -84,7 +84,7 @@ def handler(event, context):
     return {
         'statusCode': 200,
         'headers': {
-            'Access-Control-Allow-Origin': '*'
+            'Access-Control-Allow-Origin': 'https://dantelore.com'
         },
         'body': json.dumps(result)
     }

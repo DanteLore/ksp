@@ -221,6 +221,6 @@ module "cors" {
   api_resource_id   = aws_api_gateway_resource.proxy.id
   allow_headers = ["*"]
   allow_methods = ["POST", "OPTIONS"]
-  allow_origin = "*"
+  allow_origin = "https://dantelore.com"
 }
 
